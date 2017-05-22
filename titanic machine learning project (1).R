@@ -1,3 +1,5 @@
+library(ggplot2)
+
 #load raw data
 train <- read.csv("train.csv", header = TRUE)
 test <- read.csv("test.csv", header = TRUE)
@@ -297,10 +299,10 @@ ggplot(misses[misses$Survived != "None",], aes(x=Age, fill = Survived)) +
 # are much more likely to survive
 
 #create subset that consist of misses without siblings or parents on titanic
-#gets a sense of older misses
 misses.alone <- misses[which(misses$SibSp == 0 & misses$Parch == 0),]
 summary(misses.alone$Age)
 length(which(misses.alone$age <=14.5))
+
 #how many of this alone travelers are less than 14.5 years old (equivalent of title master for males)
 # when comparing age of misses and age of misses alone, we see that alone travelers are older,
 #confirming our hypothesis
@@ -370,4 +372,234 @@ ggplot(data.combined[1:891,], aes(x=family.size, fill=Survived)) +
   ylab("Total Count") +
   ylim(0,300)+
   labs(fill = "Survived")
+
+#data analysis part 3
+
+#lets look at ticket variable
+str(data.combined$Ticket)
+#has 929 values, probably not a factor
+
+#lets convert to character
+data.combined$Ticket <- as.character(data.combined$Ticket)
+# check what ticket variable now looks like
+data.combined$Ticket[1:20]
+#this data is random numbers, we have no idea what we are lookin at
+#lets look at the letters in each ticket and see if we can find pattern
+
+
+Ticket.first.char <- ifelse(data.combined$Ticket == "", "", substr
+                            (data.combined$Ticket, 1,1))
+#substring is built in function that grabs part of string
+# this function will grab ticket and start and position 1 and stop 1 
+??first.char
+
+# substring call is wrapped in an if else
+?ifelse 
+#if true then do this if not then do that
+
+#we first check if ticket is empty and if that is the case we 
+#just return empty space if not then i want the first string 
+
+#this will be run for the whole vector of 1309 values
+
+#unique function will return unique values of vector
+unique(Ticket.first.char)
+length(unique(Ticket.first.char))
+summary(Ticket.first.char)
+#get a sense of variable created
+
+#add variable created to our existing data set
+data.combined$Ticket.first.char <- as.factor(Ticket.first.char)
+
+#16 unique values now, this can be considered a factor variable now
+
+#plot the variable 
+ggplot(data.combined[1:891,], aes(x=Ticket.first.char, fill=Survived)) +
+  geom_bar(stat="count") +
+  #facet_wrap(~Pclass + Title) +
+  ggtitle("Survival Rate by Ticket") +
+  xlab("Ticket.first.char") +
+  ylab("Total Count") +
+  ylim(0,350)+
+  labs(fill = "Survived")
+
+#now lets replot using pclass
+ggplot(data.combined[1:891,], aes(x=Ticket.first.char, fill=Survived)) +
+  geom_bar(stat="count") +
+  facet_wrap(~Pclass) +
+  ggtitle("Survival Rate by Ticket and Pclass") +
+  xlab("Ticket.first.char") +
+  ylab("Total Count") +
+  ylim(0,350)+
+  labs(fill = "Survived")
+
+#combo of pclass and title have been most predictive so far lets see if ticket adds any
+#additional predictive power
+
+ggplot(data.combined[1:891,], aes(x=Ticket.first.char, fill=Survived)) +
+  geom_bar(stat="count") +
+  facet_wrap(~Pclass + Title) +
+  ggtitle("Pclass Title") +
+  xlab("Ticket.first.char") +
+  ylab("Total Count") +
+  ylim(0,350)+
+  labs(fill = "Survived")
+
+#seems like ticket is not really indicative of survival
+
+#next variable is fares, amount of money passengers paid for ticket
+#we assume there will be correlation between pclass and amont of money paid for ticket
+
+#looking into fare variable
+summary(data.combined$Fare)
+length(unique(data.combined$Fare))
+
+#some folks didnt pay any fare at all!
+# 25% of fares were 25 pounds or less
+# 50 % of fares were less than 14.5 pounds
+# mean is much larger than median, are distribution is heavily right skewed
+
+#lets check distribution
+
+# Can't make fare a factor, treat as numeric & visualize with histogram
+ggplot(data.combined, aes(x = Fare)) +
+  stat_count(width = 5) +
+  ggtitle("Combined Fare Distribution") +
+  xlab("Fare") +
+  ylab("Total Count") +
+  ylim(0,200)
+
+#large bulk of folks in titanic did not pay a whole lot
+
+#lets drill down and see if it has predictive power in addition to pclass and title
+ggplot(data.combined[1:891,], aes(x=Fare, fill=Survived)) +
+  geom_bar(width=5) +
+  facet_wrap(~Pclass + Title) +
+  ggtitle("Pclass Title") +
+  xlab("Fare") +
+  ylab("Total Count") +
+  ylim(0,50)+
+  labs(fill = "Survived")
+warnings()
+
+#doesnt seem like there is additional predictive power, in some specific cases there seems to be
+#but we dont want to overfit model, that is this cases have very little volume and
+#will probably not generalize well outside of this training set
+
+
+#now lets look at cabin, this will probably be correlated with pclass
+str(data.combined$Cabin)
+#read in as a factor with 187 vars, we should change this, way too many levels
+
+data.combined$Cabin <- as.character(data.combined$Cabin)
+data.combined$Cabin[1:100]
+# lots of missing data!
+
+#letters are prob decks, and numbers are rows
+
+#are missing values indicative of 3rd class?
+#some have multiple cabins
+# we need to manipulate 
+
+#replace empty cabins with U for unknown
+data.combined[which(data.combined$Cabin == ""), "Cabin"] <- "U"
+#which is where in sql clause
+#grab cabin variable after that and cram a U into it
+data.combined$Cabin[1:100]
+#if there is any signal in this variable, it is probably due to decks,
+#if we focus on row number, we can run into overfitting problem
+
+#lets take a look at deck and treat as factor
+Cabin.first.char <-as.factor(substr(data.combined$Cabin, 1,1))
+#substring(var, start position, stop position)
+levels(Cabin.first.char)
+#we see all expected variables in factor
+
+#cram this new variable into our existing data frame
+data.combined$Cabin.first.char <- Cabin.first.char
+
+ggplot(data.combined[1:891,], aes(x=Cabin.first.char, fill=Survived)) +
+  geom_bar() +
+  ggtitle("Survivability by cabin.first.char") +
+  xlab("cabin.first.char") +
+  ylab("Total Count") +
+  ylim(0,750) +
+  labs(fill = "Survived")
+
+#interesting, but probably indiicative of pclass
+#lets graph relationship between deck and pclass
+
+ggplot(data.combined[1:891,], aes(x = Cabin.first.char, fill = Survived)) +
+  geom_bar() +
+  facet_wrap(~Pclass) +
+  ggtitle("Survivability by cabin.first.char") +
+  xlab("Pclass") +
+  ylab("Total Count") +
+  ylim(0,500) +
+  labs(fill = "Survived")
+
+#vast mahority of folks with no tickets are in 2nd and 3rd classs
+
+#maybe cabin is not helpful for us because it is highly correlated with class
+
+#adding in pclass and title to see if there is some interesting insigh, just in case
+ggplot(data.combined[1:891,], aes(x = Cabin.first.char, fill = Survived)) +
+  geom_bar() +
+  facet_wrap(~Pclass + Title) +
+  ggtitle("Pclass, Title") +
+  xlab("cabin.first.char") +
+  ylab("Total Count") +
+  ylim(0,500) +
+  labs(fill = "Survived")
+
+#what about folks with multiple cabins?
+# representative of more wealth
+
+?str_detect
+#used here to go through cabin variable and detect blank space in cabin which would 
+#be indicative of multiple cabins
+
+data.combined$Cabin.multiple <- as.factor(ifelse(str_detect(data.combined$Cabin, " "),
+                                                 "Y", "N"))
+
+ggplot(data.combined[1:891,], aes(x = Cabin.multiple, fill = Survived)) +
+  geom_bar() +
+  facet_wrap(~Pclass + Title) +
+  ggtitle("Pclass, Title") +
+  xlab("cabin.multiple") +
+  ylab("Total Count") +
+  ylim(0,350) +
+  labs(fill = "Survived")        
+
+#again we dont see a signal that pops out at us
+#multiple cabins are very rare, prone to overfit if we account for this
+
+#where you got onboard, what city?
+str(data.combined$Embarked)
+levels(data.combined$Embarked)
+
+ggplot(data.combined[1:891,], aes(x = Embarked, fill = Survived)) +
+  geom_bar() +
+  facet_wrap(~Pclass + Title) +
+  ggtitle("Pclass, Title") +
+  xlab("embarked") +
+  ylab("Total Count") +
+  ylim(0,300) +
+  labs(fill = "Survived")
+
+#if you embard from queensland you are most likely to be a third class passenger,
+#but this doesnt help us with survivability
+
+#in summary we want to use pclass and title, which we derived using sex and age feature
+#there is some useful info in sigsb and parch which we used to make family size
+
+#next vid exploratory modelling 1
+
+
+#==============================================================================
+#
+# Video #4 - Exploratory Modeling
+#
+#==============================================================================
+
 
