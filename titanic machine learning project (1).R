@@ -602,4 +602,89 @@ ggplot(data.combined[1:891,], aes(x = Embarked, fill = Survived)) +
 #
 #==============================================================================
 
+#explore top predictors pclass and title, build a model with these two vars
+#train random forest with default parameters
+
+
+#minimal data frame to explore two vars
+rf.train.1 <-data.combined[1:891, c("Pclass", "Title")]
+#did you survive or not
+rf.label <- as.factor(train$Survived)
+
+#random forest are random, set seed to replicate forest with different vars and parameters
+set.seed(1234)
+rf.1 <-randomForest(x=rf.train.1, y=rf.label, importance =TRUE, ntree = 1000)
+#as you train trees keep track of importance of variables, and keep number of trees at 1000
+#very fast cause data is mall
+
+rf.1
+#must expand viewer to see plot
+varImpPlot(rf.1)
+#title is way more predictive than pclass!
+
+#now add sibsb, travelling with sibling or spuse
+rf.train.2 <- data.combined[1:891, c("Pclass", "Title", "SibSp")]
+
+set.seed(1234)
+rf.2 <- randomForest(x = rf.train.2, y = rf.label, importance = TRUE, ntree = 1000)
+rf.2
+varImpPlot(rf.2)
+#only about a 1% improvement in error rate, but this is actually a huge deal
+
+#dramatically increases accuracy rate for those who survive
+
+#now try parch var, traveling with parent or child
+rf.train.3 <- data.combined[1:891, c("Pclass", "Title", "Parch")]
+
+set.seed(1234)
+rf.3 <- randomForest(x = rf.train.3, y = rf.label, importance = TRUE, ntree = 1000)
+rf.3
+varImpPlot(rf.3)
+
+#improves OOB error but not as much as SibSP
+#now lets try them all together
+
+rf.train.4 <- data.combined[1:891, c("Pclass", "Title", "SibSp", "Parch")]
+set.seed(1234)
+
+rf.4 <-randomForest(x=rf.train.4, y=rf.label, importance = TRUE, ntree = 1000)
+rf.4
+varImpPlot(rf.4)
+
+#woah even better improvement
+
+#women and children first
+#wealthier folks tend to survive
+#smaller families in third class had greater chance of survival
+
+# we ended up creating family size variable
+rf.train.5 <-data.combined[1:891, c("Pclass", "Title", "family.size")]
+rf.5 <-randomForest(x=rf.train.5, rf.label, importance = TRUE, ntree = 1000)
+rf.5
+varImpPlot(rf.5)
+#even betterrrr!!!
+
+#this gives us a better idea for feature engineering
+# family size matters and we should look into further
+#breaking it down
+
+#how does model react when we add correlated vars
+#Train a Random Forest using pclass, title, sibsp, & family.size
+rf.train.6 <- data.combined[1:891, c("Pclass", "Title", "SibSp", "family.size")]
+
+set.seed(1234)
+rf.6 <- randomForest(x = rf.train.6, y = rf.label, importance = TRUE, ntree = 1000)
+rf.6
+varImpPlot(rf.6)
+
+
+
+# Train a Random Forest using pclass, title, parch, & family.size
+rf.train.7 <- data.combined[1:891, c("Pclass", "Title", "Parch", "family.size")]
+
+set.seed(1234)
+rf.7 <- randomForest(x = rf.train.7, y = rf.label, importance = TRUE, ntree = 1000)
+rf.7
+varImpPlot(rf.7)
+
 
