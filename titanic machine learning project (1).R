@@ -687,4 +687,122 @@ rf.7 <- randomForest(x = rf.train.7, y = rf.label, importance = TRUE, ntree = 10
 rf.7
 varImpPlot(rf.7)
 
+#==============================================================================
+#
+# Video #5
+#
+#==============================================================================
 
+#subset our test records and features
+test.submit.df <-data.combined[892:1309, c("Pclass", "Title", "family.size")]
+
+#make predictions
+rf.5.preds <- predict(rf.5, test.submit.df)
+#making predictions using rf.5 object, using the test.submit.df as dataframe and store predictions
+#in rf.5.preds
+
+#run table on predictions to see how predictions are distributed
+table(rf.5.preds)
+
+# we need to convert table to csv to submit to kaggle
+
+#write out a csv file for submission to kaggle
+
+?rep
+#replicates elements 
+
+#creating a dataset with passenger id and predictions
+#where passenger ids are just numbers ranging from 892 to 1389
+#survived is just random forest prediciton
+
+submit.df <- data.frame(PassengerId = rep(892:1309), Survived = rf.5.preds)
+#this matches the data frames that kaggle expects to be submitted
+
+#this will convert data to csv, tell it the file name you will like to use
+#this naming convention tells you 
+write.csv(submit.df, file ="RF_SUB_20160528_1.csv", row.names = FALSE )
+
+#caret package is your friend!! for machine learning
+
+install.packages("caret")
+#advanced predictive modeling
+help(package = "caret")
+install.packages("doSNOW")
+#parrallel computing
+warnings()
+library(caret)
+library(doSNOW)
+?createMultiFolds
+
+#stratify multiple folds by proportion of surivors vs those that passed to make sure you dont train
+#on samples with only people that passed, since way more people passed than survived
+
+set.seed(2348)
+cv.10.folds <- createMultiFolds(rf.label, k = 10, times = 10)
+#set random seed, create multifolds, provide lable rf.label which allows for multifold 
+#to stratify based on proportions and gives indexing of data
+#multifold creates indexes of data and does not replicate data
+#k specifies folds, 10 groups and done 10 times thus a list of 100
+
+#check stratification proportions
+table(rf.label)
+342/549 #62 % perrish 
+
+#verify with random folds
+table(rf.label[cv.10.folds[[33]]])
+308/494 #62% perrish, approximately the same
+
+#the whole point of this was to check the stratification in caret
+
+#now that weve got folds, we need to train folds 
+#using train control 
+?trainControl
+
+install.packages('e1071', dependencies=TRUE)
+library(e1071)
+#how do we use train control to set up training on 10 folds validated 10 times
+ctrl.1 <- trainControl(method = "repeatedcv", number = 10, repeats = 10,
+                       index = cv.10.folds)
+
+#where things get cool now
+#doSNOW sets up child processes that are subordinate to main thread
+
+cl <- makeCluster(2, type = "SOCK")
+#this cluster tells R how many subproccesses to set up to parrallel compute
+#type SOCK for single computer, SOCKET SERVER
+
+#register the cluster to tell caret you wanna train in parrallel
+registerDoSNOW(cl)
+
+#set seed for reproducibility and train
+
+
+set.seed(34324)
+r.5.cv.1 <- train(x=rf.train.5, y= rf.label, method="rf", tuneLength = 3,
+                   ntree = 1000, trControl = ctrl.1)
+
+#x = inputs from random forest 5 
+# we trained 3000 trees the same way we trained random forest 5 object
+
+#method refers to the algorithm being trained 
+#you can also do preprocessing such as imputing, principal component analysis
+#buy the book!
+
+#train control is how we will do training which in our case is 10 fold cross validation
+#repeated 10 times with stratified subsets
+
+#tuneLength allows for various types of hyperparameter values for tuning
+#such as number of trees trained as well as the type of control being used
+
+#tuneLength has built in set of values running over and over again and find
+#which ones works the best
+#which values give best score for repeated cross validation ( we only have 3 vars)
+
+#you will get a note that says it will truncate to only 2 parameters being used
+
+#shut down cluster
+stopCluster(cl)
+
+#check out results
+rf.5.cv.1 <- r.5.cv.1
+rf.5.cv.1
