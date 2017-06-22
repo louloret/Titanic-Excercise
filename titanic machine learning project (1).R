@@ -806,3 +806,52 @@ stopCluster(cl)
 #check out results
 rf.5.cv.1 <- r.5.cv.1
 rf.5.cv.1
+
+###############Exploratory Modelling video 6
+
+#we want to predict better
+# did you watch vid 4 on decision tree?
+# decision trees have a lot of variability, based on input data
+# subject to overfitting
+# random forest allows us to account for this
+
+#==============================================================================
+#
+# Video #6 - Exploratory Modeling 2
+#
+#==============================================================================
+
+# Let's use a single decision tree to better understand what's going on with our
+# features. Obviously Random Forests are far more powerful than single trees,
+# but single trees have the advantage of being easier to understand.
+
+library(rpart)
+install.packages("rpart.plot")
+library(rpart.plot)
+
+?makeCluster
+
+#quick function for cross validation 10 times
+#our method is rpart, just a tree not a random forest
+rpart.cv <- function(seed, training, labels, ctrl){
+  cl<- makeCluster(2, type = "SOCK")
+  registerDoSNOW(cl)
+  set.seed(seed)
+  
+  #leverage formula interface for training
+  rpart.cv <- train(x= training, y = labels, method = "rpart", tunelength =30,
+                    trControl = ctrl)
+  
+  #shut down cluster
+  stopCLuster(cl)
+  
+  return (rpart.cv)
+}
+  
+#create vector with features to plug into function
+features <-c("Pclass", "Title", "family.size")
+rpart.train.1 <-data.combined[1:891, features]
+
+#run rpart cv function
+rpart.1.cv.1 <- rpart.cv(94622, rpart.train.1, rf.label, ctrl.1)
+
